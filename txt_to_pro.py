@@ -34,6 +34,7 @@ def parse_txt_file(txt_path):
     current_section = None
     current_slides = []
     current_lines = []
+    has_section_tags = False
 
     for line in lines:
         # Skip title line
@@ -42,6 +43,7 @@ def parse_txt_file(txt_path):
 
         # Section header
         if line.startswith('[') and line.endswith(']'):
+            has_section_tags = True
             # Save previous section
             if current_lines:
                 current_slides.append(current_lines)
@@ -78,6 +80,13 @@ def parse_txt_file(txt_path):
     if current_section and current_slides:
         sections.append({
             'name': current_section,
+            'slides': current_slides
+        })
+
+    # If no sections were found (file has no tags), treat entire file as one section
+    if not has_section_tags and current_slides:
+        sections.append({
+            'name': song_title if song_title != "Untitled" else 'Lyrics',
             'slides': current_slides
         })
 

@@ -1,0 +1,144 @@
+{
+	"info": {
+		"_postman_id": "propresenter-converter-api",
+		"name": "ProPresenter Converter API",
+		"description": "API for converting text files to ProPresenter .pro format",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Health Check",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8001/",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8001",
+					"path": [
+						""
+					]
+				},
+				"description": "Check if API is running"
+			}
+		},
+		{
+			"name": "Health Status",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8001/health",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8001",
+					"path": [
+						"health"
+					]
+				},
+				"description": "Check API health and template configuration"
+			}
+		},
+		{
+			"name": "Parse Text File",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "file",
+							"type": "file",
+							"src": "/home/joelvw/church/pro-file-generator/example_song.txt",
+							"description": "Text file with song lyrics"
+						}
+					]
+				},
+				"url": {
+					"raw": "http://localhost:8001/parse",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8001",
+					"path": [
+						"parse"
+					]
+				},
+				"description": "Parse a text file and return structure without converting"
+			}
+		},
+		{
+			"name": "Convert to .pro (with default template)",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "file",
+							"type": "file",
+							"src": "/home/joelvw/church/pro-file-generator/example_song.txt",
+							"description": "Text file with song lyrics"
+						}
+					]
+				},
+				"url": {
+					"raw": "http://localhost:8001/convert",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8001",
+					"path": [
+						"convert"
+					]
+				},
+				"description": "Convert text file to .pro using default template"
+			}
+		},
+		{
+			"name": "Convert to .pro (with custom template)",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "file",
+							"type": "file",
+							"src": "/path/to/your/song.txt",
+							"description": "Text file with song lyrics"
+						},
+						{
+							"key": "template",
+							"type": "file",
+							"src": "/path/to/your/template.pro",
+							"description": "Optional: Custom template .pro file"
+						}
+					]
+				},
+				"url": {
+					"raw": "http://localhost:8001/convert",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8001",
+					"path": [
+						"convert"
+					]
+				},
+				"description": "Convert text file to .pro using custom template"
+			}
+		}
+	]
+}
