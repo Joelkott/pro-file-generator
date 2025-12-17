@@ -1,18 +1,6 @@
 #!/usr/bin/env python3
 """
-Convert simple txt files to ProPresenter .pro files
-Format: 2 lines per slide, organized into sections
-
-Example txt format:
-# Song Title: Amazing Grace
-
-[Verse 1]
-Amazing grace how sweet the sound
-That saved a wretch like me
-
-[Chorus]
-Amazing grace how sweet the sound
-That saved a wretch like me
+Full implementation: Parse txt file and generate .pro with actual slide content
 """
 
 import sys
@@ -25,24 +13,6 @@ import re
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'proto_generated'))
 
 import presentation_pb2
-import action_pb2
-import slide_pb2
-import cue_pb2
-import groups_pb2
-import uuid_pb2
-import rvtimestamp_pb2
-import applicationInfo_pb2
-import version_pb2
-import color_pb2
-import background_pb2
-import graphicsData_pb2
-import rv2d_pb2
-import font_pb2
-
-
-def generate_uuid():
-    """Generate a UUID string"""
-    return str(uuid.uuid4())
 
 
 def parse_txt_file(txt_path):
@@ -73,7 +43,7 @@ def parse_txt_file(txt_path):
         # Section header
         if line.startswith('[') and line.endswith(']'):
             # Save previous section
-            if current_section and current_lines:
+            if current_lines:
                 current_slides.append(current_lines)
             if current_section and current_slides:
                 sections.append({
@@ -117,171 +87,140 @@ def parse_txt_file(txt_path):
     }
 
 
-def create_text_element(line1, line2):
-    """Create a text element with 2 lines"""
-    text = f"{line1}\\par\\n{line2}"
-
-    # Create RTF data (simplified)
-    rtf_data = (
-        "{\\rtf0\\ansi\\ansicpg1252"
-        "{\\fonttbl\\f0\\fnil Arial;}"
-        "{\\colortbl;\\red255\\green255\\blue255;}"
-        "{\\*\\expandedcolortbl;\\csgenericrgb\\c100000\\c100000\\c100000\\c100000;}"
-        "{\\*\\listtable}{\\*\\listoverridetable}"
-        "\\uc1\\paperw38400\\margl0\\margr0\\margt0\\margb0"
-        "\\pard\\li0\\fi0\\ri0\\qc\\sb0\\sa0\\sl240\\slmult1\\slleading0"
-        "\\f0\\b0\\i0\\ul0\\strike0\\fs120\\expnd0\\expndtw0"
-        "\\CocoaLigature1\\cf1\\strokewidth0\\strokec1\\nosupersub\\ulc0"
-        f"{line1}\\par\\n{line2}"
-        "}"
-    )
-
-    # Create Graphics.Element
-    element = graphicsData_pb2.Graphics.Element()
-    element.uuid.string = generate_uuid()
-    element.name = "Line one..."
-    element.bounds.origin.x = 0
-    element.bounds.origin.y = 0
-    element.bounds.size.width = 1920
-    element.bounds.size.height = 540
-    element.opacity = 1.0
-
-    # Set up path (rectangle)
-    element.path.closed = True
-    for i in range(4):
-        point = element.path.points.add()
-        if i == 0:  # top-left
-            point.point.x = 0
-            point.point.y = 0
-        elif i == 1:  # top-right
-            point.point.x = 1
-            point.point.y = 0
-        elif i == 2:  # bottom-right
-            point.point.x = 1
-            point.point.y = 1
-        elif i == 3:  # bottom-left
-            point.point.x = 0
-            point.point.y = 1
-        point.q0.CopyFrom(point.point)
-        point.q1.CopyFrom(point.point)
-
-    element.path.shape.type = graphicsData_pb2.Graphics.Path.Shape.TYPE_RECTANGLE
-
-    # Fill color (blue)
-    element.fill.color.red = 0.117647059
-    element.fill.color.green = 0.564705908
-    element.fill.color.blue = 1.0
-    element.fill.color.alpha = 1.0
-
-    # Stroke (white)
-    element.stroke.width = 3
-    element.stroke.color.red = 1.0
-    element.stroke.color.green = 1.0
-    element.stroke.color.blue = 1.0
-    element.stroke.color.alpha = 1.0
-
-    # Shadow
-    element.shadow.angle = 315
-    element.shadow.offset = 5
-    element.shadow.radius = 5
-    element.shadow.color.alpha = 1.0
-    element.shadow.opacity = 0.75
-
-    # Feather
-    element.feather.radius = 0.05
-
-    # Text attributes
-    element.text.attributes.font.name = "Arial"
-    element.text.attributes.font.size = 60
-    element.text.attributes.font.family = "Arial"
-    element.text.attributes.font.face = "Regular"
-
-    # Text color (white)
-    element.text.attributes.text_solid_fill.red = 1.0
-    element.text.attributes.text_solid_fill.green = 1.0
-    element.text.attributes.text_solid_fill.blue = 1.0
-    element.text.attributes.text_solid_fill.alpha = 1.0
-
-    # Paragraph style
-    element.text.attributes.paragraph_style.alignment = graphicsData_pb2.TextAttributes.ParagraphStyle.ALIGNMENT_CENTER
-    element.text.attributes.paragraph_style.line_height_multiple = 1.0
-
-    # Stroke color
-    element.text.attributes.stroke_color.red = 1.0
-    element.text.attributes.stroke_color.green = 1.0
-    element.text.attributes.stroke_color.blue = 1.0
-    element.text.attributes.stroke_color.alpha = 1.0
-
-    # Set RTF data
-    element.text.rtf_data = rtf_data
-    element.text.vertical_alignment = graphicsData_pb2.Text.VERTICAL_ALIGNMENT_MIDDLE
-    element.text.is_superscript_standardized = True
-    element.text.transformDelimiter = "  •  "
-    element.text.chord_pro.color.alpha = 1.0
-
-    return element
+def load_template(template_path):
+    """Load a template .pro file"""
+    with open(template_path, 'rb') as f:
+        pres = presentation_pb2.Presentation()
+        pres.ParseFromString(f.read())
+    return pres
 
 
-def create_slide(line1, line2):
-    """Create a slide with 2 lines of text"""
-    slide = slide_pb2.Slide()
-    slide.size.width = 1920
-    slide.size.height = 1080
-    slide.uuid.string = generate_uuid()
-    slide.background_color.alpha = 1.0
-
-    # Add text element
-    element = create_text_element(line1, line2)
-    slide.elements.add().element.CopyFrom(element)
-    slide.elements[0].info = 3
-
-    return slide
+def escape_rtf_text(text):
+    """Escape special characters for RTF"""
+    # Basic escaping - may need more comprehensive handling
+    text = text.replace('\\', '\\\\')
+    text = text.replace('{', '\\{')
+    text = text.replace('}', '\\}')
+    return text
 
 
-def create_cue(lines, section_name):
-    """Create a cue (slide) from lines"""
-    cue = cue_pb2.Cue()
-    cue.uuid.string = generate_uuid()
-    cue.completion_target_uuid.string = "00000000-0000-0000-0000-000000000000"
-    cue.completion_action_type = cue_pb2.Cue.COMPLETION_ACTION_TYPE_LAST
-    cue.completion_action_uuid.string = "00000000-0000-0000-0000-000000000000"
-    cue.isEnabled = True
+def update_slide_text(cue, line1, line2):
+    """Update the text in a cue's slide"""
+    # Navigate to the text element
+    if not cue.actions:
+        return False
 
-    # Create slide action
-    action = cue.actions.add()
-    action.uuid.string = generate_uuid()
-    action.isEnabled = True
-    action.type = action_pb2.Action.ACTION_TYPE_PRESENTATION_SLIDE
+    action = cue.actions[0]
+    if not action.HasField('slide'):
+        return False
 
-    # Create slide
-    line1 = lines[0] if len(lines) > 0 else ""
-    line2 = lines[1] if len(lines) > 1 else ""
-    slide = create_slide(line1, line2)
+    slide = action.slide.presentation.base_slide
+    if not slide.elements:
+        return False
 
-    action.slide.presentation.base_slide.CopyFrom(slide)
+    element = slide.elements[0].element
+    if not element.HasField('text'):
+        return False
 
-    # Add empty notes
-    action.slide.presentation.notes.rtf_data = "{\\rtf0\\ansi\\ansicpg1252{\\fonttbl\\f0\\fnil ArialMT;}{\\colortbl;\\red0\\green0\\blue0;\\red255\\green255\\blue255;\\red255\\green255\\blue255;}{\\*\\expandedcolortbl;\\csgenericrgb\\c0\\c0\\c0\\c100000;\\csgenericrgb\\c100000\\c100000\\c100000\\c100000;\\csgenericrgb\\c100000\\c100000\\c100000\\c0;}{\\*\\listtable}{\\*\\listoverridetable}\\uc1\\paperw12240\\margl0\\margr0\\margt0\\margb0\\pard\\li0\\fi0\\ri0\\ql\\sb0\\sa0\\sl240\\slmult1\\slleading0\\f0\\b0\\i0\\ul0\\strike0\\fs100\\expnd0\\expndtw0\\CocoaLigature1\\cf1\\strokewidth0\\strokec2\\nosupersub\\ulc0\\highlight3\\cb3}"
+    # Remove ALL_CAPS capitalization from template
+    # Set capitalization to NONE (0) to display text as-is
+    element.text.attributes.capitalization = 0  # CAPITALIZATION_NONE
 
-    action.slide.presentation.notes.attributes.font.name = "ArialMT"
-    action.slide.presentation.notes.attributes.font.size = 50
-    action.slide.presentation.notes.attributes.font.family = "Arial"
-    action.slide.presentation.notes.attributes.font.face = "Regular"
-    action.slide.presentation.notes.attributes.text_solid_fill.alpha = 1.0
-    action.slide.presentation.notes.attributes.paragraph_style.line_height_multiple = 1.0
-    action.slide.presentation.notes.attributes.stroke_color.red = 1.0
-    action.slide.presentation.notes.attributes.stroke_color.green = 1.0
-    action.slide.presentation.notes.attributes.stroke_color.blue = 1.0
-    action.slide.presentation.notes.attributes.stroke_color.alpha = 1.0
+    # Also update custom_attributes if they exist
+    for custom_attr in element.text.attributes.custom_attributes:
+        custom_attr.capitalization = 0  # CAPITALIZATION_NONE
 
-    return cue
+    # Escape text for RTF
+    line1_escaped = escape_rtf_text(line1)
+    line2_escaped = escape_rtf_text(line2)
+
+    # Update RTF data - try to preserve formatting
+    old_rtf = element.text.rtf_data
+
+    # Convert bytes to string if needed
+    if isinstance(old_rtf, bytes):
+        old_rtf = old_rtf.decode('utf-8', errors='ignore')
+
+    # Strategy: Find the formatting preamble and the middle formatting separator
+    # The RTF structure is: PREAMBLE + TEXT1 + MIDDLE_FORMATTING + TEXT2 + }
+    # We want to keep PREAMBLE and MIDDLE_FORMATTING, but replace TEXT1 and TEXT2
+
+    # Find the last occurrence of \cb followed by space before text starts
+    # Then find the \par\pard section in the middle
+    # Then find the closing brace
+
+    # Match pattern: (preamble with \cb2 ) + (first text) + (\par...\cb2 ) + (second text) + (})
+    match = re.search(r'^(.+\\cb\d+\s+)(.+?)(\\par\\pard.+?\\cb\d+\s+)(.+?)(\})$', old_rtf, re.DOTALL)
+
+    if match:
+        # Extract the formatting parts we want to keep
+        preamble = match.group(1)
+        middle_formatting = match.group(3)
+        closing_brace = match.group(5)
+
+        # Build new RTF with our text
+        new_rtf = f"{preamble}{line1_escaped}{middle_formatting}{line2_escaped}{closing_brace}"
+        element.text.rtf_data = new_rtf.encode('utf-8')
+        return True
+
+    # If first pattern didn't match, try fallback patterns
+    else:
+        # Fallback: try simpler pattern without middle formatting
+        match2 = re.search(r'^(.+\\cb\d+\s+)(.+?)(\})$', old_rtf, re.DOTALL)
+
+        if match2:
+            preamble = match2.group(1)
+            closing_brace = match2.group(3)
+
+            # For single line or simple format
+            if line2:
+                # Try to find any \par in the old content to use as separator
+                old_content = match2.group(2)
+                par_match = re.search(r'(\\par[^}]+)', old_content)
+                if par_match:
+                    separator = par_match.group(1)
+                    new_rtf = f"{preamble}{line1_escaped}{separator}{line2_escaped}{closing_brace}"
+                else:
+                    new_rtf = f"{preamble}{line1_escaped}\\par {line2_escaped}{closing_brace}"
+            else:
+                new_rtf = f"{preamble}{line1_escaped}{closing_brace}"
+
+            element.text.rtf_data = new_rtf.encode('utf-8')
+        else:
+            # Last resort: build from scratch
+            new_rtf = (
+                "{\\rtf0\\ansi\\ansicpg1252"
+                "{\\fonttbl\\f0\\fnil Arial;}"
+                "{\\colortbl;\\red255\\green255\\blue255;}"
+                "{\\*\\expandedcolortbl;\\csgenericrgb\\c100000\\c100000\\c100000\\c100000;}"
+                "{\\*\\listtable}{\\*\\listoverridetable}"
+                "\\uc1\\paperw38400\\margl0\\margr0\\margt0\\margb0"
+                "\\pard\\li0\\fi0\\ri0\\qc\\sb0\\sa0\\sl240\\slmult1\\slleading0"
+                "\\f0\\b0\\i0\\ul0\\strike0\\fs120\\expnd0\\expndtw0"
+                "\\CocoaLigature1\\cf1\\strokewidth0\\strokec1\\nosupersub\\ulc0\\highlight2\\cb2 "
+                f"{line1_escaped}\\par\\pard\\li0\\fi0\\ri0\\qc\\sb0\\sa0\\sl240\\slmult1\\slleading0"
+                "\\f0\\b0\\i0\\ul0\\strike0\\fs120\\expnd0\\expndtw0"
+                "\\CocoaLigature1\\cf1\\strokewidth0\\strokec1\\nosupersub\\ulc0\\highlight2\\cb2 "
+                f"{line2_escaped}"
+                "}"
+            )
+            element.text.rtf_data = new_rtf.encode('utf-8')
+            return True
+
+    # If nothing matched, return False
+    return False
+
+
+def update_cue_group_name(cue_group, new_name):
+    """Update the name of a cue group"""
+    cue_group.group.name = new_name
+    cue_group.group.application_group_name = new_name
 
 
 def get_section_color(section_name):
     """Get color for section based on name"""
     section_lower = section_name.lower()
 
-    # Default colors for common sections
     if 'verse' in section_lower:
         return {'red': 0.0, 'green': 0.466666669, 'blue': 0.8, 'alpha': 1.0}
     elif 'chorus' in section_lower:
@@ -290,125 +229,146 @@ def get_section_color(section_name):
         return {'red': 0.4627451, 'green': 0.0, 'blue': 0.8, 'alpha': 1.0}
     elif 'intro' in section_lower:
         return {'red': 0.0, 'green': 0.8, 'blue': 0.4, 'alpha': 1.0}
-    elif 'outro' in section_lower or 'ending' in section_lower:
+    elif 'ending' in section_lower or 'outro' in section_lower or 'tag' in section_lower:
         return {'red': 0.8, 'green': 0.4, 'blue': 0.0, 'alpha': 1.0}
     else:
-        # Default gray
         return {'red': 0.5, 'green': 0.5, 'blue': 0.5, 'alpha': 1.0}
 
 
-def create_presentation(data):
-    """Create a ProPresenter presentation from parsed data"""
-    pres = presentation_pb2.Presentation()
-
-    # Set application info
-    pres.application_info.platform = applicationInfo_pb2.ApplicationInfo.PLATFORM_MACOS
-    pres.application_info.platform_version.major_version = 14
-    pres.application_info.platform_version.minor_version = 0
-    pres.application_info.platform_version.patch_version = 0
-    pres.application_info.application = applicationInfo_pb2.ApplicationInfo.APPLICATION_PROPRESENTER
-    pres.application_info.application_version.major_version = 7
-    pres.application_info.application_version.minor_version = 16
-    pres.application_info.application_version.build = "118766559"
-
-    # Set basic properties
-    pres.uuid.string = generate_uuid()
-    pres.name = data['title']
-
-    current_time = int(time.time())
-    pres.last_date_used.seconds = current_time
-    pres.last_modified_date.seconds = current_time
-
-    # Background
-    pres.background.color.alpha = 1.0
-
-    # Create arrangement (default)
-    arrangement_uuid = generate_uuid()
-    pres.selected_arrangement.string = arrangement_uuid
-
-    # Create cue groups and cues for each section
-    for section in data['sections']:
-        section_name = section['name']
-        slides = section['slides']
-
-        if not slides:
-            continue
-
-        # Create cue group
-        cue_group = pres.cue_groups.add()
-        group_uuid = generate_uuid()
-
-        cue_group.group.uuid.string = group_uuid
-        cue_group.group.name = section_name
-
-        # Set color based on section name
-        color = get_section_color(section_name)
-        cue_group.group.color.red = color['red']
-        cue_group.group.color.green = color['green']
-        cue_group.group.color.blue = color['blue']
-        cue_group.group.color.alpha = color['alpha']
-
-        # Set application group identifiers
-        app_group_uuid = generate_uuid()
-        cue_group.group.application_group_identifier.string = app_group_uuid
-        cue_group.group.application_group_name = section_name
-
-        # Create cues for each slide
-        for slide_lines in slides:
-            cue = create_cue(slide_lines, section_name)
-            pres.cues.add().CopyFrom(cue)
-
-            # Add cue identifier to group
-            cue_group.cue_identifiers.add().string = cue.uuid.string
-
-    return pres
-
-
-def txt_to_pro(txt_path, output_path=None):
-    """Convert a txt file to a .pro file"""
+def txt_to_pro(txt_path, template_path, output_path=None):
+    """Convert a txt file to a .pro file using a template"""
     if not os.path.exists(txt_path):
         print(f"Error: File not found: {txt_path}")
+        return False
+
+    if not os.path.exists(template_path):
+        print(f"Error: Template file not found: {template_path}")
         return False
 
     # Parse txt file
     print(f"Parsing {txt_path}...")
     data = parse_txt_file(txt_path)
 
-    print(f"Creating presentation: {data['title']}")
+    print(f"Song: {data['title']}")
     print(f"Sections: {len(data['sections'])}")
 
-    # Create presentation
-    pres = create_presentation(data)
+    total_slides = sum(len(section['slides']) for section in data['sections'])
+    print(f"Total slides needed: {total_slides}")
+
+    for section in data['sections']:
+        print(f"  - {section['name']}: {len(section['slides'])} slides")
+
+    # Load template
+    print(f"\nLoading template from {template_path}...")
+    pres = load_template(template_path)
+
+    print(f"Template has {len(pres.cue_groups)} cue groups and {len(pres.cues)} cues")
+
+    # Update presentation metadata
+    pres.name = data['title']
+    current_time = int(time.time())
+    pres.last_date_used.seconds = current_time
+    pres.last_modified_date.seconds = current_time
+    pres.uuid.string = str(uuid.uuid4())
+
+    # Get template cue and cue_group as reference
+    if not pres.cues or not pres.cue_groups:
+        print("Error: Template must have at least one cue and cue group")
+        return False
+
+    template_cue = pres.cues[0]
+    template_group = pres.cue_groups[0]
+
+    # Clear existing cues and groups
+    del pres.cues[:]
+    del pres.cue_groups[:]
+
+    print("\nCreating slides...")
+
+    # Create new cues and groups based on parsed data
+    for section_idx, section in enumerate(data['sections']):
+        section_name = section['name']
+        slides = section['slides']
+
+        print(f"  Section: {section_name} ({len(slides)} slides)")
+
+        # Create cue group
+        cue_group = pres.cue_groups.add()
+        cue_group.CopyFrom(template_group)
+
+        # Update group properties
+        cue_group.group.uuid.string = str(uuid.uuid4())
+        cue_group.group.name = section_name
+        cue_group.group.application_group_identifier.string = str(uuid.uuid4())
+        cue_group.group.application_group_name = section_name
+
+        # Set color
+        color = get_section_color(section_name)
+        cue_group.group.color.red = color['red']
+        cue_group.group.color.green = color['green']
+        cue_group.group.color.blue = color['blue']
+        cue_group.group.color.alpha = color['alpha']
+
+        # Clear cue identifiers
+        del cue_group.cue_identifiers[:]
+
+        # Create cues for each slide in this section
+        for slide_idx, slide_lines in enumerate(slides):
+            # Create new cue from template
+            cue = pres.cues.add()
+            cue.CopyFrom(template_cue)
+
+            # Generate new UUID
+            cue_uuid = str(uuid.uuid4())
+            cue.uuid.string = cue_uuid
+
+            # Update action UUID
+            if cue.actions:
+                cue.actions[0].uuid.string = str(uuid.uuid4())
+
+            # Update slide UUID
+            if cue.actions and cue.actions[0].HasField('slide'):
+                cue.actions[0].slide.presentation.base_slide.uuid.string = str(uuid.uuid4())
+
+            # Update text content
+            line1 = slide_lines[0] if len(slide_lines) > 0 else ""
+            line2 = slide_lines[1] if len(slide_lines) > 1 else ""
+
+            success = update_slide_text(cue, line1, line2)
+            if success:
+                print(f"    Slide {slide_idx + 1}: '{line1}' / '{line2}'")
+            else:
+                print(f"    Warning: Could not update slide {slide_idx + 1}")
+
+            # Add cue identifier to group
+            cue_group.cue_identifiers.add().string = cue_uuid
 
     # Determine output path
     if not output_path:
         output_path = txt_path.rsplit('.', 1)[0] + '.pro'
 
     # Write to file
-    print(f"Writing to {output_path}...")
+    print(f"\nWriting to {output_path}...")
     with open(output_path, 'wb') as f:
         f.write(pres.SerializeToString())
 
     print(f"Success! Created {output_path}")
+    print(f"\nCreated {len(pres.cue_groups)} cue groups with {len(pres.cues)} total slides")
     return True
 
 
 def main():
-    if len(sys.argv) < 2:
-        print("Usage: python3 txt_to_pro.py <input.txt> [output.pro]")
-        print("\nExample txt format:")
-        print("# Song Title: Amazing Grace")
-        print("\n[Verse 1]")
-        print("Amazing grace how sweet the sound")
-        print("That saved a wretch like me")
-        print("\n[Chorus]")
-        print("...")
+    if len(sys.argv) < 3:
+        print("Usage: python3 txt_to_pro_full.py <input.txt> <template.pro> [output.pro]")
+        print("\nExample:")
+        print('python3 txt_to_pro_full.py sample_song.txt "/mnt/c/Users/joelv/Downloads/No One Like The Lord.proBundle/No One Like The Lord.pro" output.pro')
         sys.exit(1)
 
     txt_path = sys.argv[1]
-    output_path = sys.argv[2] if len(sys.argv) > 2 else None
+    template_path = sys.argv[2]
+    output_path = sys.argv[3] if len(sys.argv) > 3 else None
 
-    success = txt_to_pro(txt_path, output_path)
+    success = txt_to_pro(txt_path, template_path, output_path)
     sys.exit(0 if success else 1)
 
 

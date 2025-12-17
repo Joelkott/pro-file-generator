@@ -16,31 +16,31 @@ Convert simple text files into ProPresenter 7 presentation files (.pro) automati
 ### 1. Setup
 
 ```bash
-# Create virtual environment
-python3 -m venv propresenter-env
+# Clone the repository
+git clone <your-repo-url>
+cd pro-file-generator
 
-# Activate environment
-source propresenter-env/bin/activate
+# Initialize the ProPresenter7-Proto submodule
+git submodule update --init --recursive
 
 # Install dependencies
-pip install protobuf
+pip3 install protobuf
+# Or if you get an error, use: pip3 install --break-system-packages protobuf
 
 # Generate Python code from proto files
-cd "ProPresenter7-Proto/Proto 7.16"
-protoc --python_out=../../proto_generated *.proto
+mkdir -p proto_generated
+protoc --python_out=proto_generated --proto_path=ProPresenter7-Proto/proto ProPresenter7-Proto/proto/*.proto
 ```
 
 ### 2. Convert a Song
 
 ```bash
-python3 txt_to_pro_full.py input.txt template.pro output.pro
+python3 txt_to_pro.py input.txt template.pro output.pro
 ```
 
 **Example:**
 ```bash
-python3 txt_to_pro_full.py "Thank_you_for_the_cross_formatted.txt" \
-    "template.pro" \
-    "Thank_you_for_the_cross.pro"
+python3 txt_to_pro.py example_song.txt template.pro amazing_grace.pro
 ```
 
 ## Input File Format
@@ -100,12 +100,15 @@ ProPresenter .pro files use Google Protocol Buffers for encoding. This tool:
 ## Project Structure
 
 ```
-├── txt_to_pro_full.py              # Main converter script
-├── txt_to_pro_simple.py            # Simple template-only converter
-├── proto_generated/                # Generated Python protobuf code
+├── txt_to_pro.py                   # Main converter script
 ├── ProPresenter7-Proto/            # Proto definitions (submodule)
-├── sample_song.txt                 # Example input file
+├── example_song.txt                # Example input file
+├── requirements.txt                # Python dependencies
+├── .gitignore                      # Git ignore rules
 └── README.md                       # This file
+
+# Generated during setup (not in repo):
+├── proto_generated/                # Generated Python protobuf code
 ```
 
 ## Requirements
@@ -119,12 +122,12 @@ ProPresenter .pro files use Google Protocol Buffers for encoding. This tool:
 
 ### Basic Conversion
 ```bash
-python3 txt_to_pro_full.py song.txt template.pro output.pro
+python3 txt_to_pro.py song.txt template.pro output.pro
 ```
 
 ### Using Default Output Name
 ```bash
-python3 txt_to_pro_full.py song.txt template.pro
+python3 txt_to_pro.py song.txt template.pro
 # Creates song.pro
 ```
 
