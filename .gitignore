@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+propresenter-env/
+venv/
+ENV/
+env/
+
+# ProPresenter files
+*.pro
+*.proBundle/
+
+# Generated protobuf code
+proto_generated/
+
+# Test files
+test_*.pro
+*_v*.pro
+*_FULL.pro
+*_FINAL.pro
+decoded_sample.txt
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+
+# Other projects in this directory
+audience-stage-teleprompter/
+propresenter-api/
